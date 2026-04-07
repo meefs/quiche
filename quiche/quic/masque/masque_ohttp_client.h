@@ -46,6 +46,7 @@ class QUICHE_EXPORT MasqueOhttpClient
       PerRequestConfig& operator=(PerRequestConfig&& other) = default;
 
       void SetPostData(const std::string& post_data) { post_data_ = post_data; }
+      void SetMethod(const std::string& method) { method_ = method; }
       absl::Status AddHeaders(const std::vector<std::string>& headers);
       absl::Status AddOuterHeaders(
           const std::vector<std::string>& outer_headers);
@@ -74,6 +75,7 @@ class QUICHE_EXPORT MasqueOhttpClient
 
       std::string url() const { return url_; }
       std::string post_data() const { return post_data_; }
+      std::string method() const;
       const std::vector<std::pair<std::string, std::string>>& headers() const {
         return headers_;
       }
@@ -101,6 +103,7 @@ class QUICHE_EXPORT MasqueOhttpClient
      private:
       std::string url_;
       std::string post_data_;
+      std::optional<std::string> method_;
       std::vector<std::pair<std::string, std::string>> headers_;
       std::vector<std::pair<std::string, std::string>> outer_headers_;
       bool use_chunked_ohttp_ = false;

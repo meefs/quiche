@@ -83,6 +83,16 @@ absl::Status ParseHeadersIntoMap(
 
 }  // namespace
 
+std::string MasqueOhttpClient::Config::PerRequestConfig::method() const {
+  if (method_.has_value()) {
+    return *method_;
+  }
+  if (!post_data_.empty()) {
+    return "POST";
+  }
+  return "GET";
+}
+
 absl::Status MasqueOhttpClient::Config::PerRequestConfig::AddHeaders(
     const std::vector<std::string>& headers) {
   return ParseHeadersIntoMap(headers, headers_);
@@ -373,7 +383,7 @@ absl::Status MasqueOhttpClient::SendOhttpRequest(
   }
   BinaryHttpRequest::ControlData control_data;
   std::string post_data = per_request_config.post_data();
-  control_data.method = post_data.empty() ? "GET" : "POST";
+  control_data.method = per_request_config.method();
   control_data.scheme = url.scheme();
   control_data.authority = url.HostPort();
   control_data.path = url.PathParamsQuery();
