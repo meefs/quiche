@@ -64,6 +64,8 @@ TEST_P(QuicConfigTest, SetDefaults) {
   EXPECT_FALSE(config_.HasReceivedInitialMaxStreamDataBytesUnidirectional());
   EXPECT_EQ(kMaxIncomingPacketSize, config_.GetMaxPacketSizeToSend());
   EXPECT_FALSE(config_.HasReceivedMaxPacketSize());
+  EXPECT_TRUE(config_.scone_packet_interval().IsZero());
+  EXPECT_FALSE(config_.parse_scone_packets());
 }
 
 TEST_P(QuicConfigTest, AutoSetIetfFlowControl) {
@@ -101,6 +103,9 @@ TEST_P(QuicConfigTest, SconeConfig) {
 
   config_.set_scone_packet_interval(QuicTimeDelta::FromSeconds(100));
   EXPECT_EQ(100, config_.scone_packet_interval().ToSeconds());
+
+  config_.set_parse_scone_packets(true);
+  EXPECT_TRUE(config_.parse_scone_packets());
 }
 
 TEST_P(QuicConfigTest, NoSconeTransportParameter) {
@@ -131,6 +136,15 @@ TEST_P(QuicConfigTest, SconeTransportParameter) {
   config_.ProcessTransportParameters(params, /*is_resumption=*/false,
                                      &error_details);
   EXPECT_EQ(config_.scone_packet_interval().ToSeconds(), 20);
+
+  // If parse_scone_packets_ is false, scone_supported should be false.
+  config_.FillTransportParameters(&params);
+  EXPECT_FALSE(params.scone_supported);
+
+  // If parse_scone_packets_ is true, scone_supported should be true.
+  config_.set_parse_scone_packets(true);
+  config_.FillTransportParameters(&params);
+  EXPECT_TRUE(params.scone_supported);
 }
 
 TEST_P(QuicConfigTest, ToHandshakeMessage) {

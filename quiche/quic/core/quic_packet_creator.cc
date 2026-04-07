@@ -26,6 +26,7 @@
 #include "quiche/quic/core/quic_constants.h"
 #include "quiche/quic/core/quic_data_writer.h"
 #include "quiche/quic/core/quic_error_codes.h"
+#include "quiche/quic/core/quic_framer.h"
 #include "quiche/quic/core/quic_packets.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_utils.h"
@@ -613,7 +614,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
   size_t length_field_offset = 0;
   size_t scone_length = 0;
   if (send_scone_packet_) {
-    if (!framer_->AppendSconeHeader(header, &writer)) {
+    if (!QuicFramer::AppendSconeHeader(header, &writer)) {
       QUIC_BUG(scone_bug_append_header_failed)
           << ENDPOINT << "AppendSconeHeader failed";
       return;
@@ -862,7 +863,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
   size_t scone_length = 0;
   if (send_scone_packet_) {
     QuicDataWriter writer(max_plaintext_size_, encrypted_buffer.buffer);
-    if (!framer_->AppendSconeHeader(header, &writer)) {
+    if (!QuicFramer::AppendSconeHeader(header, &writer)) {
       QUIC_BUG(scone_bug_scone_header_serialization_failed)
           << ENDPOINT << "Failed to serialize SCONE header";
       return false;

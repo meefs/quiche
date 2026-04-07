@@ -86,6 +86,7 @@
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_utils.h"
 #include "quiche/quic/core/quic_versions.h"
+#include "quiche/quic/core/scone.h"
 #include "quiche/quic/core/session_notifier_interface.h"
 #include "quiche/quic/platform/api/quic_bug_tracker.h"
 #include "quiche/quic/platform/api/quic_client_stats.h"
@@ -654,14 +655,23 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
   }
 
   framer_.set_process_reset_stream_at(config.SupportsReliableStreamReset());
+  bool indicate_scone_support = false;
   if (!config.scone_packet_interval().IsZero()) {
     if (config.negotiated()) {
       scone_packet_interval_ = config.scone_packet_interval();
       next_scone_packet_time_ = clock_->ApproximateNow();
     } else {
-      packet_creator_.IndicateSconeSupport();
-      coalesced_packet_.AllowMaxPacketLengthToIncrease();
+      indicate_scone_support = true;
     }
+  }
+  parse_scone_packets_ = config.parse_scone_packets();
+  framer_.set_parse_scone_packets(parse_scone_packets_);
+  if (parse_scone_packets_ && !config.negotiated()) {
+    indicate_scone_support = true;
+  }
+  if (indicate_scone_support) {
+    packet_creator_.IndicateSconeSupport();
+    coalesced_packet_.AllowMaxPacketLengthToIncrease();
   }
 
   if (config.peer_reordering_threshold() != 1 &&
@@ -1235,7 +1245,11 @@ void QuicConnection::OnDecryptedPacket(size_t /*length*/,
   }
   idle_network_detector_.OnPacketReceived(
       last_received_packet_info_.receipt_time);
-
+  if (pending_scone_report_.has_value()) {
+    QUICHE_DCHECK(parse_scone_packets_);
+    visitor_->OnSconePacket(*pending_scone_report_);
+    pending_scone_report_.reset();
+  }
   visitor_->OnPacketDecrypted(level);
 }
 
@@ -2440,6 +2454,28 @@ void QuicConnection::OnDecryptedFirstPacketInKeyPhase() {
       clock_->ApproximateNow() + sent_packet_manager_.GetPtoDelay() * 3);
 }
 
+void QuicConnection::OnSconePacket(uint8_t signal) {
+  if (parse_scone_packets_) {
+    // 127 (kNumSconeBandwidths) is a legal value, meaning the value is unknown.
+    // Anything larger than 127 cannot be encoded in the fields of a SCONE
+    // packet.
+    QUIC_BUG_IF(quic_bug_invalid_scone_signal, signal > kNumSconeBandwidths)
+        << "Invalid SCONE signal: " << static_cast<int>(signal);
+    if (pending_scone_report_.has_value()) {
+      // Two SCONE packets are in the datagram, but the framer should not call
+      // this twice.
+      QUIC_BUG(quic_bug_two_scone_values)
+          << "Two SCONE reports from same datagram";
+      // Two SCONE packets in the datagram! Ignore the second one.
+      return;
+    }
+    if (signal < kNumSconeBandwidths) {
+      // Store the report pending the authentication of the next packet.
+      pending_scone_report_ = GetSconeBandwidths()[signal];
+    }
+  }
+}
+
 std::unique_ptr<QuicDecrypter>
 QuicConnection::AdvanceKeysAndCreateCurrentOneRttDecrypter() {
   QUIC_DLOG(INFO) << ENDPOINT << "AdvanceKeysAndCreateCurrentOneRttDecrypter";
@@ -2796,6 +2832,9 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
   if (!connected_) {
     return;
   }
+  // If the last packet had SCONE, but pending_scone_report_ is still set,
+  // there was no successful decryption in that datagram. Discard the report.
+  pending_scone_report_.reset();
   QUIC_DVLOG(2) << ENDPOINT << "Received encrypted " << packet.length()
                 << " bytes:" << std::endl
                 << quiche::QuicheTextUtils::HexDump(
@@ -4750,6 +4789,8 @@ void QuicConnection::CloseConnection(
   }
 
   in_close_connection_ = true;
+  next_scone_packet_time_.reset();
+  scone_packet_interval_ = QuicTime::Delta::Zero();
   absl::Cleanup cleanup = [this]() { in_close_connection_ = false; };
 
   if (ietf_error != NO_IETF_QUIC_ERROR) {

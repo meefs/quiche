@@ -1058,6 +1058,7 @@ void QuicConfig::SetDefaults() {
   SetMaxDatagramFrameSizeToSend(kMaxAcceptedDatagramFrameSize);
   SetReliableStreamReset(false);
   scone_packet_interval_ = QuicTimeDelta::Zero();
+  parse_scone_packets_ = false;
 }
 
 void QuicConfig::ToHandshakeMessage(
@@ -1310,6 +1311,8 @@ bool QuicConfig::FillTransportParameters(TransportParameters* params) const {
   params->reliable_stream_reset = reliable_stream_reset_;
 
   params->custom_parameters = custom_transport_parameters_to_send_;
+
+  params->scone_supported = parse_scone_packets_;
 
   return true;
 }

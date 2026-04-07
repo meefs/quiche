@@ -356,6 +356,12 @@ class QUICHE_EXPORT QuicConfig {
 
   QuicTimeDelta scone_packet_interval() const { return scone_packet_interval_; }
 
+  void set_parse_scone_packets(bool parse_scone_packets) {
+    parse_scone_packets_ = parse_scone_packets;
+  }
+
+  bool parse_scone_packets() const { return parse_scone_packets_; }
+
   // Peer's connection id length, in bytes. Only used in Q043 and Q046.
   bool HasSetBytesForConnectionIdToSend() const;
   void SetBytesForConnectionIdToSend(uint32_t bytes);
@@ -764,6 +770,10 @@ class QUICHE_EXPORT QuicConfig {
 
   // SCONE send interval in seconds. Zero means no SCONE packets will be sent.
   QuicTimeDelta scone_packet_interval_ = QuicTimeDelta::Zero();
+  // If true, can process incoming SCONE packets. Should only be set to true by
+  // applications that can take the bandwidth report and pass it back to the
+  // peer.
+  bool parse_scone_packets_;
 
   // Support for RESET_STREAM_AT frame.
   bool reliable_stream_reset_;
