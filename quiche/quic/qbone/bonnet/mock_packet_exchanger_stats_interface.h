@@ -18,8 +18,8 @@ class MockPacketExchangerStatsInterface
  public:
   MOCK_METHOD(void, OnPacketRead, (size_t, absl::Duration), (override));
   MOCK_METHOD(void, OnPacketWritten, (size_t, absl::Duration), (override));
-  MOCK_METHOD(void, OnReadError, (std::string*), (override));
-  MOCK_METHOD(void, OnWriteError, (std::string*), (override));
+  MOCK_METHOD(void, OnReadError, (absl::string_view), (override));
+  MOCK_METHOD(void, OnWriteError, (absl::string_view), (override));
 
   MOCK_METHOD(int64_t, PacketsRead, (), (const, override));
   MOCK_METHOD(int64_t, PacketsWritten, (), (const, override));

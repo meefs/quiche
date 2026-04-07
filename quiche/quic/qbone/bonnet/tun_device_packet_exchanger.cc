@@ -42,7 +42,7 @@ bool TunDevicePacketExchanger::WritePacket(const char* packet, size_t size,
   if (write_fd_ < 0) {
     *error =
         absl::StrCat("Invalid file descriptor of the TUN device: ", write_fd_);
-    stats_->OnWriteError(error);
+    stats_->OnWriteError(*error);
     return false;
   }
 
@@ -64,7 +64,7 @@ bool TunDevicePacketExchanger::WritePacket(const char* packet, size_t size,
       *error =
           absl::ErrnoToStatus(errno, "Write to the TUN device was blocked.")
               .message();
-      stats_->OnWriteError(error);
+      stats_->OnWriteError(*error);
     }
     return false;
   }
@@ -78,7 +78,7 @@ std::unique_ptr<QuicData> TunDevicePacketExchanger::ReadPacket(
   if (read_fd_ < 0) {
     *error =
         absl::StrCat("Invalid file descriptor of the TUN device: ", read_fd_);
-    stats_->OnReadError(error);
+    stats_->OnReadError(*error);
     return nullptr;
   }
 
@@ -96,7 +96,7 @@ std::unique_ptr<QuicData> TunDevicePacketExchanger::ReadPacket(
       *error =
           absl::ErrnoToStatus(errno, "Read from the TUN device was blocked.")
               .message();
-      stats_->OnReadError(error);
+      stats_->OnReadError(*error);
     }
     return nullptr;
   }

@@ -33,8 +33,8 @@ class TunDevicePacketExchanger : public QbonePacketExchanger {
 
     virtual void OnPacketRead(size_t length, absl::Duration latency) = 0;
     virtual void OnPacketWritten(size_t length, absl::Duration latency) = 0;
-    virtual void OnReadError(std::string* error) = 0;
-    virtual void OnWriteError(std::string* error) = 0;
+    virtual void OnReadError(absl::string_view error) = 0;
+    virtual void OnWriteError(absl::string_view error) = 0;
 
     ABSL_MUST_USE_RESULT virtual int64_t PacketsRead() const = 0;
     ABSL_MUST_USE_RESULT virtual int64_t PacketsWritten() const = 0;
