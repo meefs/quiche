@@ -238,6 +238,11 @@ absl::StatusOr<QuicUrl> ParseUrl(const std::string& url_string) {
 }
 
 absl::Status MasqueOhttpClient::StartKeyFetch(const std::string& url_string) {
+  std::string decoded_key_data;
+  if (absl::HexStringToBytes(url_string, &decoded_key_data) &&
+      !decoded_key_data.empty()) {
+    return HandleKeyData(decoded_key_data);
+  }
   QuicUrl url(url_string, "https");
   if (url.host().empty() && !absl::StrContains(url_string, "://")) {
     url = QuicUrl(absl::StrCat("https://", url_string));
@@ -328,8 +333,13 @@ absl::Status MasqueOhttpClient::HandleKeyResponse(
                    << response->headers.DebugString();
   QUICHE_RETURN_IF_ERROR(CheckStatusAndContentType(
       *response, "application/ohttp-keys", std::nullopt));
+
+  return HandleKeyData(response->body);
+}
+
+absl::Status MasqueOhttpClient::HandleKeyData(const std::string& key_data) {
   absl::StatusOr<ObliviousHttpKeyConfigs> key_configs =
-      ObliviousHttpKeyConfigs::ParseConcatenatedKeys(response->body);
+      ObliviousHttpKeyConfigs::ParseConcatenatedKeys(key_data);
   if (!key_configs.ok()) {
     return absl::FailedPreconditionError(absl::StrCat(
         "Failed to parse OHTTP keys: ", key_configs.status().message()));
@@ -485,6 +495,8 @@ absl::Status MasqueOhttpClient::SendOhttpRequest(
        per_request_config.outer_headers()) {
     request.headers[header.first] = header.second;
   }
+  QUICHE_VLOG(1) << "Sending encrypted request: "
+                 << absl::BytesToHexString(encrypted_data);
   request.body = encrypted_data;
   absl::StatusOr<RequestId> request_id =
       connection_pool_.SendRequest(request, /*mtls=*/true);
