@@ -18556,6 +18556,7 @@ TEST_P(QuicConnectionTest, ReceiveSconeValueUnauthenticated) {
   // New packet before OnDecrypedPacket invalidates SCONE. A garbage packet is
   // sufficient.
   char buffer[800];
+  memset(buffer, 0, sizeof(buffer));
   QuicReceivedPacket packet(buffer, sizeof(buffer), QuicTime::Zero());
   ProcessReceivedPacket(kSelfAddress, kPeerAddress, packet);
   EXPECT_CALL(visitor_, OnSconePacket).Times(0);
