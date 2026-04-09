@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "quiche/quic/core/quic_bandwidth.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_versions.h"
@@ -31,7 +32,7 @@ static constexpr int kNumSconeBandwidths = 127;
 // is unknown.
 // Returns the SCONE bandwidth table. Initialized once on first use.
 inline const std::vector<QuicBandwidth>& GetSconeBandwidths() {
-  static const std::vector<QuicBandwidth> kBandwidths = [] {
+  static const absl::NoDestructor<std::vector<QuicBandwidth>> kBandwidths([] {
     std::vector<QuicBandwidth> v;
     v.reserve(kNumSconeBandwidths);
     double factor = 1.0;
@@ -42,8 +43,8 @@ inline const std::vector<QuicBandwidth>& GetSconeBandwidths() {
       factor *= multiplier;
     }
     return v;
-  }();
-  return kBandwidths;
+  }());
+  return *kBandwidths;
 }
 
 }  // namespace quic

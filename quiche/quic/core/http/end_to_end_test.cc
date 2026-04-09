@@ -4802,7 +4802,8 @@ class SconePacketWriter : public PacketDroppingTestWriter {
         observed_scone_endpoints_.contains(peer_address.host())) {
       return true;
     }
-    if (*(buffer - 2) == 0xc8 && *(buffer - 1) == 0x13) {
+    const uint8_t* ubuffer = reinterpret_cast<const uint8_t*>(buffer);
+    if (*(ubuffer - 2) == 0xc8 && *(ubuffer - 1) == 0x13) {
       // Indicator is present, record the flow.
       observed_scone_endpoints_.insert(peer_address.host());
       return true;

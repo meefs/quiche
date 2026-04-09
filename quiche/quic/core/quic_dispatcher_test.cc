@@ -928,7 +928,7 @@ TEST_P(QuicDispatcherTestOneVersion,
   EXPECT_CALL(*dispatcher_, CreateQuicSession).Times(0);
   EXPECT_CALL(*time_wait_list_manager_, SendVersionNegotiationPacket).Times(1);
   dispatcher_->ProcessPacket(server_address_, client_address, *packet);
-};
+}
 
 TEST_P(QuicDispatcherTestOneVersion,
        StatelessVersionNegotiationWithVeryLongConnectionId) {
