@@ -5,12 +5,14 @@
 #ifndef QUICHE_QUIC_MASQUE_MASQUE_OHTTP_CLIENT_H_
 #define QUICHE_QUIC_MASQUE_MASQUE_OHTTP_CLIENT_H_
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -67,6 +69,10 @@ class QUICHE_EXPORT MasqueOhttpClient
         expected_encapsulated_response_body_ =
             expected_encapsulated_response_body;
       }
+      void SetEncapsulatedResponseBodyCallback(
+          std::function<absl::Status(absl::string_view)> callback) {
+        encapsulated_response_body_callback_ = std::move(callback);
+      }
 
       std::string url() const { return url_; }
       std::string post_data() const { return post_data_; }
@@ -92,6 +98,10 @@ class QUICHE_EXPORT MasqueOhttpClient
       std::optional<std::string> expected_encapsulated_response_body() const {
         return expected_encapsulated_response_body_;
       }
+      const std::function<absl::Status(absl::string_view)> absl_nullable&
+      encapsulated_response_body_callback() const {
+        return encapsulated_response_body_callback_;
+      }
 
      private:
       std::string url_;
@@ -105,6 +115,8 @@ class QUICHE_EXPORT MasqueOhttpClient
       std::optional<uint16_t> expected_gateway_status_code_;
       std::optional<uint16_t> expected_encapsulated_status_code_;
       std::optional<std::string> expected_encapsulated_response_body_;
+      std::function<absl::Status(absl::string_view)> absl_nullable
+      encapsulated_response_body_callback_ = nullptr;
     };
 
     explicit Config(const std::string& key_fetch_url,

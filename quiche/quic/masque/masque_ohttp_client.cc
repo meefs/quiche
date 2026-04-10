@@ -669,6 +669,11 @@ absl::Status MasqueOhttpClient::ProcessOhttpResponse(
         *it->second.per_request_config.expected_encapsulated_response_body(),
         "\""));
   }
+  if (const auto& callback =
+          it->second.per_request_config.encapsulated_response_body_callback();
+      callback) {
+    QUICHE_RETURN_IF_ERROR(callback(encapsulated_response->body));
+  }
   return absl::OkStatus();
 }
 
