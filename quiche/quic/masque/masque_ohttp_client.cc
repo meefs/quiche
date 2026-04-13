@@ -658,17 +658,6 @@ absl::Status MasqueOhttpClient::ProcessOhttpResponse(
     return absl::InvalidArgumentError(absl::StrCat(
         "Bad encapsulated status code: ", encapsulated_status_code));
   }
-  if (it->second.per_request_config.expected_encapsulated_response_body()
-          .has_value() &&
-      encapsulated_response->body !=
-          *it->second.per_request_config
-               .expected_encapsulated_response_body()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "Unexpected encapsulated response body: \"",
-        encapsulated_response->body, "\" != \"",
-        *it->second.per_request_config.expected_encapsulated_response_body(),
-        "\""));
-  }
   if (const auto& callback =
           it->second.per_request_config.encapsulated_response_body_callback();
       callback) {

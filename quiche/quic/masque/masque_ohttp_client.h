@@ -64,11 +64,6 @@ class QUICHE_EXPORT MasqueOhttpClient
       void SetExpectedEncapsulatedStatusCode(uint16_t status_code) {
         expected_encapsulated_status_code_ = status_code;
       }
-      void SetExpectedEncapsulatedResponseBody(
-          const std::string& expected_encapsulated_response_body) {
-        expected_encapsulated_response_body_ =
-            expected_encapsulated_response_body;
-      }
       void SetEncapsulatedResponseBodyCallback(
           std::function<absl::Status(absl::string_view)> callback) {
         encapsulated_response_body_callback_ = std::move(callback);
@@ -95,9 +90,6 @@ class QUICHE_EXPORT MasqueOhttpClient
       std::optional<uint16_t> expected_encapsulated_status_code() const {
         return expected_encapsulated_status_code_;
       }
-      std::optional<std::string> expected_encapsulated_response_body() const {
-        return expected_encapsulated_response_body_;
-      }
       const std::function<absl::Status(absl::string_view)> absl_nullable&
       encapsulated_response_body_callback() const {
         return encapsulated_response_body_callback_;
@@ -114,7 +106,6 @@ class QUICHE_EXPORT MasqueOhttpClient
       std::optional<std::string> expected_gateway_error_;
       std::optional<uint16_t> expected_gateway_status_code_;
       std::optional<uint16_t> expected_encapsulated_status_code_;
-      std::optional<std::string> expected_encapsulated_response_body_;
       std::function<absl::Status(absl::string_view)> absl_nullable
       encapsulated_response_body_callback_ = nullptr;
     };
