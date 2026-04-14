@@ -18354,8 +18354,6 @@ TEST_P(QuicConnectionTest, DoNotUpdateAckStateAfterConnectionClose) {
   if (!version().IsIetfQuic()) {
     return;
   }
-  // Test will fail if this flag is false.
-  SetQuicReloadableFlag(quic_disconnect_early_exit, true);
   // Path validation must occur after the handshake is confirmed.
   connection_.RemoveEncrypter(ENCRYPTION_INITIAL);
   connection_.SetDefaultEncryptionLevel(ENCRYPTION_FORWARD_SECURE);
