@@ -269,7 +269,7 @@ void OgHttp2Session::PassthroughHeadersHandler::OnHeader(
         << session_.decoder_.GetHpackDecoder()
                .current_header_block_uncompressed_bytes()
         << " > " << *session_.options_.max_header_list_bytes;
-    SetResult(OnHeaderResult::HEADER_HTTP_MESSAGING);
+    SetResult(OnHeaderResult::HEADER_RST_STREAM);
     return;
   }
   const HeaderValidator::HeaderStatus validation_result =

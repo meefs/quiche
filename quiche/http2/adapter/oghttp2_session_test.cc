@@ -410,7 +410,8 @@ TEST(OgHttp2SessionTest, ClientWithMaxDynamicTableSizeZero) {
   EXPECT_EQ(session.GetHpackEncoderDynamicTableSize(), 0);
 }
 
-TEST(OgHttp2SessionTest, ServerEnforcesUncompressedHeaderSizeLimit) {
+TEST(OgHttp2SessionTest,
+     ServerEnforcesUncompressedHeaderSizeLimit_StreamReset) {
   TestVisitor visitor;
   OgHttp2Session::Options options;
   options.perspective = Perspective::kServer;
@@ -451,20 +452,42 @@ TEST(OgHttp2SessionTest, ServerEnforcesUncompressedHeaderSizeLimit) {
   EXPECT_CALL(visitor, OnHeaderForStream(1, ":path", "/this/is/request/one"))
       .WillOnce(
           testing::Return(Http2VisitorInterface::OnHeaderResult::HEADER_OK));
-  EXPECT_CALL(visitor,
-              OnInvalidFrame(
-                  1, Http2VisitorInterface::InvalidFrameError::kHttpMessaging))
-      .WillOnce(testing::Return(false));
-  EXPECT_CALL(
-      visitor,
-      OnConnectionError(Http2VisitorInterface::ConnectionError::kHeaderError));
+
+  // The connection should stay alive, so it should process the PINGs.
+  EXPECT_CALL(visitor, OnFrameHeader(0, 8, PING, 0));
+  EXPECT_CALL(visitor, OnPing(42, false));
+  EXPECT_CALL(visitor, OnFrameHeader(0, 8, PING, 0));
+  EXPECT_CALL(visitor, OnPing(43, false));
 
   const int64_t result = session.ProcessBytes(frames);
-  EXPECT_EQ(result, -902);
+  EXPECT_EQ(result, frames.size());
+
+  EXPECT_TRUE(session.want_write());
+  // We expect the server to send initial SETTINGS.
+  EXPECT_CALL(visitor, OnBeforeFrameSent(SETTINGS, 0, _, 0x0));
+  EXPECT_CALL(visitor, OnFrameSent(SETTINGS, 0, _, 0x0, 0));
+
+  // We expect the server to send SETTINGS ACK.
+  EXPECT_CALL(visitor, OnBeforeFrameSent(SETTINGS, 0, 0, 0x1));
+  EXPECT_CALL(visitor, OnFrameSent(SETTINGS, 0, 0, 0x1, 0));
+
+  // We expect a RST_STREAM to be sent for stream 1.
+  EXPECT_CALL(visitor, OnBeforeFrameSent(RST_STREAM, 1, _, 0x0));
+  EXPECT_CALL(visitor,
+              OnFrameSent(RST_STREAM, 1, _, 0x0, 2));  // 2 is INTERNAL_ERROR
+  EXPECT_CALL(visitor, OnCloseStream(1, Http2ErrorCode::HTTP2_NO_ERROR));
+
+  // We expect PING ACKs to be sent.
+  EXPECT_CALL(visitor, OnBeforeFrameSent(PING, 0, 8, 0x1));
+  EXPECT_CALL(visitor, OnFrameSent(PING, 0, 8, 0x1, 0));
+  EXPECT_CALL(visitor, OnBeforeFrameSent(PING, 0, 8, 0x1));
+  EXPECT_CALL(visitor, OnFrameSent(PING, 0, 8, 0x1, 0));
+
+  int send_result = session.Send();
+  EXPECT_EQ(0, send_result);
 }
 
-TEST(OgHttp2SessionTest,
-     ServerEnforcesDefaultHeaderListSizeLimit_ConnectionError) {
+TEST(OgHttp2SessionTest, ServerEnforcesDefaultHeaderListSizeLimit_StreamReset) {
   TestVisitor visitor;
   OgHttp2Session::Options options;
   options.perspective = Perspective::kServer;
@@ -512,80 +535,6 @@ TEST(OgHttp2SessionTest,
   EXPECT_CALL(visitor, OnFrameHeader(3, _, HEADERS, _));
   EXPECT_CALL(visitor, OnBeginHeadersForStream(3));
   EXPECT_CALL(visitor, OnHeaderForStream(_, _, _)).Times(testing::AtLeast(1));
-
-  // We expect OnInvalidFrame to be called for stream 3, and we return false to
-  // trigger connection error.
-  EXPECT_CALL(visitor,
-              OnInvalidFrame(
-                  3, Http2VisitorInterface::InvalidFrameError::kHttpMessaging))
-      .WillOnce(testing::Return(false));
-
-  // Then we expect OnConnectionError.
-  EXPECT_CALL(
-      visitor,
-      OnConnectionError(Http2VisitorInterface::ConnectionError::kHeaderError));
-
-  const int64_t result = session.ProcessBytes(frames);
-  EXPECT_EQ(result, -902);
-}
-
-TEST(OgHttp2SessionTest,
-     ServerOverridesDefaultHeaderListSizeLimitExceededBehavior_StreamReset) {
-  TestVisitor visitor;
-  OgHttp2Session::Options options;
-  options.perspective = Perspective::kServer;
-  options.max_header_list_bytes = 400;
-  options.blackhole_data_on_connection_error = false;
-  options.enforce_max_header_list_bytes = true;
-  OgHttp2Session session(visitor, options);
-
-  const std::string frames =
-      TestFrameSequence()
-          .ClientPreface()
-          // First stream adds the large header to dynamic table.
-          .Headers(1,
-                   {{":method", "POST"},
-                    {":scheme", "https"},
-                    {":authority", "example.com"},
-                    {":path", "/this/is/request/one"},
-                    {"large-header", std::string(200, 'a')}},
-                   /*fin=*/true)
-          // Second stream references it twice, exceeding the limit.
-          .Headers(3,
-                   {{":method", "POST"},
-                    {":scheme", "https"},
-                    {":authority", "example.com"},
-                    {":path", "/this/is/request/two"},
-                    {"large-header", std::string(200, 'a')},
-                    {"large-header", std::string(200, 'a')}},
-                   /*fin=*/true)
-          .Ping(42)
-          .Serialize();
-
-  testing::InSequence s;
-  EXPECT_CALL(visitor, OnFrameHeader(0, 0, SETTINGS, 0));
-  EXPECT_CALL(visitor, OnSettingsStart());
-  EXPECT_CALL(visitor, OnSettingsEnd());
-
-  // Stream 1 should be processed normally.
-  EXPECT_CALL(visitor, OnFrameHeader(1, _, HEADERS, _));
-  EXPECT_CALL(visitor, OnBeginHeadersForStream(1));
-  EXPECT_CALL(visitor, OnHeaderForStream(_, _, _)).Times(testing::AtLeast(1));
-  EXPECT_CALL(visitor, OnEndHeadersForStream(1));
-  EXPECT_CALL(visitor, OnEndStream(1));
-
-  // Stream 3 should hit the limit.
-  EXPECT_CALL(visitor, OnFrameHeader(3, _, HEADERS, _));
-  EXPECT_CALL(visitor, OnBeginHeadersForStream(3));
-  EXPECT_CALL(visitor, OnHeaderForStream(_, _, _)).Times(testing::AtLeast(1));
-
-  // In this test, the application's visitor returns true from OnInvalidFrame,
-  // overriding the default behavior so the connection should stay
-  // alive.
-  EXPECT_CALL(visitor,
-              OnInvalidFrame(
-                  3, Http2VisitorInterface::InvalidFrameError::kHttpMessaging))
-      .WillOnce(testing::Return(true));
 
   // The connection should stay alive, so it should process the PING.
   EXPECT_CALL(visitor, OnFrameHeader(0, 8, PING, 0));
@@ -595,7 +544,6 @@ TEST(OgHttp2SessionTest,
   EXPECT_EQ(result, frames.size());
 
   EXPECT_TRUE(session.want_write());
-
   // We expect the server to send initial SETTINGS.
   EXPECT_CALL(visitor, OnBeforeFrameSent(SETTINGS, 0, _, 0x0));
   EXPECT_CALL(visitor, OnFrameSent(SETTINGS, 0, _, 0x0, 0));
@@ -607,7 +555,7 @@ TEST(OgHttp2SessionTest,
   // We expect a RST_STREAM to be sent for stream 3.
   EXPECT_CALL(visitor, OnBeforeFrameSent(RST_STREAM, 3, _, 0x0));
   EXPECT_CALL(visitor,
-              OnFrameSent(RST_STREAM, 3, _, 0x0, 1));  // 1 is PROTOCOL_ERROR
+              OnFrameSent(RST_STREAM, 3, _, 0x0, 2));  // 2 is INTERNAL_ERROR
   EXPECT_CALL(visitor, OnCloseStream(3, Http2ErrorCode::HTTP2_NO_ERROR));
 
   // We expect a PING ACK to be sent.

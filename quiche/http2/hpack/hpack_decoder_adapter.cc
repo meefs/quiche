@@ -101,7 +101,8 @@ bool HpackDecoderAdapter::HandleControlFrameHeadersComplete() {
 
 void HpackDecoderAdapter::set_max_decode_buffer_size_bytes(
     size_t max_decode_buffer_size_bytes) {
-  QUICHE_DVLOG(2) << "HpackDecoderAdapter::set_max_decode_buffer_size_bytes";
+  QUICHE_DVLOG(2) << "HpackDecoderAdapter::set_max_decode_buffer_size_bytes"
+                  << max_decode_buffer_size_bytes;
   max_decode_buffer_size_bytes_ = max_decode_buffer_size_bytes;
   hpack_decoder_.set_max_string_size_bytes(max_decode_buffer_size_bytes);
 }
