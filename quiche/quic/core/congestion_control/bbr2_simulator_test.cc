@@ -48,7 +48,6 @@ DEFINE_QUICHE_COMMAND_LINE_FLAG(
 
 namespace quic {
 
-using CyclePhase = Bbr2ProbeBwMode::CyclePhase;
 
 namespace test {
 
@@ -1549,7 +1548,7 @@ TEST_F(Bbr2DefaultTopologyTest, Drain) {
         QuicRoundTripCount rounds_passed =
             debug_state.round_trip_count - start_round_trip;
         return rounds_passed >= 4 && debug_state.mode == Bbr2Mode::PROBE_BW &&
-               debug_state.probe_bw.phase == CyclePhase::PROBE_REFILL;
+               debug_state.probe_bw.phase == ProbePhase::PROBE_REFILL;
       },
       timeout);
   ASSERT_TRUE(simulator_result);
@@ -1573,7 +1572,7 @@ TEST_F(Bbr2DefaultTopologyTest, InFlightAwareGainCycling) {
   simulator_result = SendUntilOrTimeout(
       [this]() {
         return sender_->ExportDebugState().probe_bw.phase ==
-               CyclePhase::PROBE_REFILL;
+               ProbePhase::PROBE_REFILL;
       },
       timeout);
   ASSERT_TRUE(simulator_result);
@@ -1585,7 +1584,7 @@ TEST_F(Bbr2DefaultTopologyTest, InFlightAwareGainCycling) {
   for (int i = 0; i < 2; i++) {
     SendBursts(params, 5, target_bandwidth * burst_interval, burst_interval);
     EXPECT_EQ(Bbr2Mode::PROBE_BW, sender_->ExportDebugState().mode);
-    EXPECT_EQ(CyclePhase::PROBE_UP, sender_->ExportDebugState().probe_bw.phase);
+    EXPECT_EQ(ProbePhase::PROBE_UP, sender_->ExportDebugState().probe_bw.phase);
     EXPECT_APPROX_EQ(params.BottleneckBandwidth(),
                      sender_->ExportDebugState().bandwidth_hi, 0.02f);
   }
@@ -1604,13 +1603,13 @@ TEST_F(Bbr2DefaultTopologyTest, InFlightAwareGainCycling) {
   simulator_result = simulator_.RunUntilOrTimeout(
       [this]() {
         return sender_->ExportDebugState().probe_bw.phase ==
-               CyclePhase::PROBE_DOWN;
+               ProbePhase::PROBE_DOWN;
       },
       timeout);
   ASSERT_TRUE(simulator_result);
   simulator_.RunFor(0.75 * sender_->ExportDebugState().min_rtt);
   EXPECT_EQ(Bbr2Mode::PROBE_BW, sender_->ExportDebugState().mode);
-  EXPECT_EQ(CyclePhase::PROBE_CRUISE,
+  EXPECT_EQ(ProbePhase::PROBE_CRUISE,
             sender_->ExportDebugState().probe_bw.phase);
 }
 
@@ -1775,7 +1774,7 @@ TEST_F(Bbr2DefaultTopologyTest, ProbeUpAdaptInflightHiGradually) {
   sender_->OnCongestionEvent(
       /*rtt_updated=*/true, sender_unacked_map()->bytes_in_flight(), now,
       acked_packets, {}, 0, 0);
-  ASSERT_EQ(CyclePhase::PROBE_REFILL,
+  ASSERT_EQ(ProbePhase::PROBE_REFILL,
             sender_->ExportDebugState().probe_bw.phase);
 
   // Send and Ack one packet to exit app limited and enter PROBE_UP.
@@ -1786,7 +1785,7 @@ TEST_F(Bbr2DefaultTopologyTest, ProbeUpAdaptInflightHiGradually) {
       /*rtt_updated=*/true, kDefaultMaxPacketSize, now,
       {AckedPacket(next_packet_number - 1, kDefaultMaxPacketSize, now)}, {}, 0,
       0);
-  ASSERT_EQ(CyclePhase::PROBE_UP, sender_->ExportDebugState().probe_bw.phase);
+  ASSERT_EQ(ProbePhase::PROBE_UP, sender_->ExportDebugState().probe_bw.phase);
 
   // Send 2 packets and lose the first one(50% loss) to exit PROBE_UP.
   for (uint64_t i = 0; i < 2; ++i) {
@@ -1940,7 +1939,7 @@ TEST_F(Bbr2DefaultTopologyTest, ProbeBwAfterQuiescencePostponeMinRttTimestamp) {
   simulator_result = SendUntilOrTimeout(
       [this]() {
         return sender_->ExportDebugState().probe_bw.phase ==
-               CyclePhase::PROBE_REFILL;
+               ProbePhase::PROBE_REFILL;
       },
       timeout);
   ASSERT_TRUE(simulator_result);

@@ -18,6 +18,24 @@
 
 namespace quic {
 
+const char* ProbePhaseToString(ProbePhase phase) {
+  switch (phase) {
+    case ProbePhase::PROBE_NOT_STARTED:
+      return "PROBE_NOT_STARTED";
+    case ProbePhase::PROBE_UP:
+      return "PROBE_UP";
+    case ProbePhase::PROBE_DOWN:
+      return "PROBE_DOWN";
+    case ProbePhase::PROBE_CRUISE:
+      return "PROBE_CRUISE";
+    case ProbePhase::PROBE_REFILL:
+      return "PROBE_REFILL";
+    default:
+      break;
+  }
+  return "<Invalid ProbePhase>";
+}
+
 RoundTripCounter::RoundTripCounter() : round_trip_count_(0) {}
 
 void RoundTripCounter::OnPacketSent(QuicPacketNumber packet_number) {

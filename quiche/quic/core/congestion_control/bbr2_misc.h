@@ -226,6 +226,21 @@ struct QUICHE_EXPORT Bbr2Params {
   bool decrease_startup_pacing_at_end_of_round = false;
 };
 
+enum class ProbePhase : uint8_t {
+  PROBE_NOT_STARTED,
+  PROBE_UP,
+  PROBE_DOWN,
+  PROBE_CRUISE,
+  PROBE_REFILL,
+};
+
+QUICHE_EXPORT const char* ProbePhaseToString(ProbePhase phase);
+
+QUICHE_EXPORT inline std::ostream& operator<<(std::ostream& os,
+                                              ProbePhase phase) {
+  return os << ProbePhaseToString(phase);
+}
+
 class QUICHE_EXPORT RoundTripCounter {
  public:
   RoundTripCounter();
