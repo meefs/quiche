@@ -495,4 +495,29 @@ void Bbr2NetworkModel::CheckPersistentQueue(
   }
 }
 
+std::ostream& operator<<(std::ostream& os, const Bbr2DebugState& s) {
+  os << "mode: " << s.mode << "\n";
+  os << "round_trip_count: " << s.round_trip_count << "\n";
+  os << "bandwidth_hi ~ lo ~ est: " << s.bandwidth_hi << " ~ " << s.bandwidth_lo
+     << " ~ " << s.bandwidth_est << "\n";
+  os << "min_rtt: " << s.min_rtt << "\n";
+  os << "min_rtt_timestamp: " << s.min_rtt_timestamp << "\n";
+  os << "congestion_window: " << s.congestion_window << "\n";
+  os << "pacing_rate: " << s.pacing_rate << "\n";
+  os << "last_sample_is_app_limited: " << s.last_sample_is_app_limited << "\n";
+
+  os << "startup: {full_bw_reached: " << s.startup.full_bandwidth_reached
+     << ", full_bw_baseline: " << s.startup.full_bandwidth_baseline
+     << ", rounds_without_growth: "
+     << s.startup.round_trips_without_bandwidth_growth << "}\n";
+  os << "drain: {drain_target: " << s.drain.drain_target << "}\n";
+  os << "probe_bw: {phase: " << ProbePhaseToString(s.probe_bw.phase)
+     << ", cycle_start_time: " << s.probe_bw.cycle_start_time
+     << ", phase_start_time: " << s.probe_bw.phase_start_time << "}\n";
+  os << "probe_rtt: {inflight_target: " << s.probe_rtt.inflight_target
+     << ", exit_time: " << s.probe_rtt.exit_time << "}\n";
+
+  return os;
+}
+
 }  // namespace quic

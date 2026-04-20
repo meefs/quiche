@@ -456,8 +456,8 @@ enum CongestionControlType {
   kBBR,
   kPCC,
   kGoogCC,
-  kBBRv2,  // TODO(rch): This is effectively BBRv3. We should finish the
-           // implementation and rename this enum.
+  kBBRv2,  // This has some changes from BBRv3 as well.
+  kBBRv3,
   kPragueCubic,
 };
 

@@ -38,14 +38,7 @@ class QUICHE_EXPORT Bbr2ProbeBwMode final : public Bbr2ModeBase {
   Bbr2Mode OnExitQuiescence(QuicTime now,
                             QuicTime quiescence_start_time) override;
 
-
-  struct QUICHE_EXPORT DebugState {
-    ProbePhase phase;
-    QuicTime cycle_start_time = QuicTime::Zero();
-    QuicTime phase_start_time = QuicTime::Zero();
-  };
-
-  DebugState ExportDebugState() const;
+  Bbr2DebugState::ProbeBw ExportDebugState() const;
 
  private:
   const Bbr2Params& Params() const;
@@ -118,8 +111,6 @@ class QUICHE_EXPORT Bbr2ProbeBwMode final : public Bbr2ModeBase {
   bool last_cycle_stopped_risky_probe_;
 };
 
-QUICHE_EXPORT std::ostream& operator<<(
-    std::ostream& os, const Bbr2ProbeBwMode::DebugState& state);
 
 }  // namespace quic
 

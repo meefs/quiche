@@ -600,22 +600,12 @@ void Bbr2ProbeBwMode::ExitProbeDown() {
   }
 }
 
-
-
-Bbr2ProbeBwMode::DebugState Bbr2ProbeBwMode::ExportDebugState() const {
-  DebugState s;
+Bbr2DebugState::ProbeBw Bbr2ProbeBwMode::ExportDebugState() const {
+  Bbr2DebugState::ProbeBw s;
   s.phase = cycle_.phase;
   s.cycle_start_time = cycle_.cycle_start_time;
   s.phase_start_time = cycle_.phase_start_time;
   return s;
-}
-
-std::ostream& operator<<(std::ostream& os,
-                         const Bbr2ProbeBwMode::DebugState& state) {
-  os << "[PROBE_BW] phase: " << state.phase << "\n";
-  os << "[PROBE_BW] cycle_start_time: " << state.cycle_start_time << "\n";
-  os << "[PROBE_BW] phase_start_time: " << state.phase_start_time << "\n";
-  return os;
 }
 
 const Bbr2Params& Bbr2ProbeBwMode::Params() const { return sender_->Params(); }

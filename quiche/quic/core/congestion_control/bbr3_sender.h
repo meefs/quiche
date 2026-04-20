@@ -85,7 +85,7 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
   QuicByteCount GetSlowStartThreshold() const override { return 0; }
 
   CongestionControlType GetCongestionControlType() const override {
-    return kBBRv2;
+    return kBBRv3;
   }
 
   std::string GetDebugState() const override;
@@ -112,48 +112,7 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
     return model_.IsBandwidthOverestimateAvoidanceEnabled();
   }
 
-  struct QUICHE_EXPORT DebugState {
-    Bbr2Mode mode;
-
-    // Shared states.
-    QuicRoundTripCount round_trip_count;
-    QuicBandwidth bandwidth_hi = QuicBandwidth::Zero();
-    QuicBandwidth bandwidth_lo = QuicBandwidth::Zero();
-    QuicBandwidth bandwidth_est = QuicBandwidth::Zero();
-    QuicByteCount inflight_hi;
-    QuicByteCount inflight_lo;
-    QuicByteCount max_ack_height;
-    QuicTime::Delta min_rtt = QuicTime::Delta::Zero();
-    QuicTime min_rtt_timestamp = QuicTime::Zero();
-    QuicByteCount congestion_window;
-    QuicBandwidth pacing_rate = QuicBandwidth::Zero();
-    bool last_sample_is_app_limited;
-    QuicPacketNumber end_of_app_limited_phase;
-
-    // Mode-specific states.
-    struct QUICHE_EXPORT Startup {
-      bool full_bandwidth_reached = false;
-      QuicBandwidth full_bandwidth_baseline = QuicBandwidth::Zero();
-      QuicRoundTripCount round_trips_without_bandwidth_growth = 0;
-    } startup;
-
-    struct QUICHE_EXPORT Drain {
-      QuicByteCount drain_target = 0;
-    } drain;
-
-    struct QUICHE_EXPORT ProbeBw {
-      ProbePhase phase = ProbePhase::PROBE_NOT_STARTED;
-      QuicTime cycle_start_time = QuicTime::Zero();
-      QuicTime phase_start_time = QuicTime::Zero();
-    } probe_bw;
-
-    struct QUICHE_EXPORT ProbeRtt {
-      QuicByteCount inflight_target = 0;
-      QuicTime exit_time = QuicTime::Zero();
-    } probe_rtt;
-  };
-
-  DebugState ExportDebugState() const;
+  Bbr2DebugState ExportDebugState() const;
 
   const Bbr2NetworkModel& GetNetworkModel() const { return model_; }
 
@@ -288,8 +247,6 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
   bool last_sample_is_app_limited_;
 };
 
-QUICHE_EXPORT std::ostream& operator<<(std::ostream& os,
-                                       const Bbr3Sender::DebugState& state);
 
 }  // namespace quic
 

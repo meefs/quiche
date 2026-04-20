@@ -176,7 +176,7 @@ class Bbr2DefaultTopologyTest : public Bbr2SimulatorTest {
   ~Bbr2DefaultTopologyTest() {
     const auto* test_info =
         ::testing::UnitTest::GetInstance()->current_test_info();
-    const Bbr2Sender::DebugState& debug_state = sender_->ExportDebugState();
+    const Bbr2DebugState& debug_state = sender_->ExportDebugState();
     QUIC_LOG(INFO) << "Bbr2DefaultTopologyTest." << test_info->name()
                    << " completed at simulated time: "
                    << SimulatedNow().ToDebuggingValue() / 1e6
@@ -333,7 +333,7 @@ class Bbr2DefaultTopologyTest : public Bbr2SimulatorTest {
 
   QuicConnection* sender_connection() { return sender_endpoint_.connection(); }
 
-  Bbr2Sender::DebugState sender_debug_state() const {
+  Bbr2DebugState sender_debug_state() const {
     return sender_->ExportDebugState();
   }
 

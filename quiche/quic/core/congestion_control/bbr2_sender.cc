@@ -522,8 +522,8 @@ std::string Bbr2Sender::GetDebugState() const {
   return stream.str();
 }
 
-Bbr2Sender::DebugState Bbr2Sender::ExportDebugState() const {
-  DebugState s;
+Bbr2DebugState Bbr2Sender::ExportDebugState() const {
+  Bbr2DebugState s;
   s.mode = mode_;
   s.round_trip_count = model_.RoundTripCount();
   s.bandwidth_hi = model_.MaxBandwidth();
@@ -545,36 +545,6 @@ Bbr2Sender::DebugState Bbr2Sender::ExportDebugState() const {
   s.probe_rtt = probe_rtt_.ExportDebugState();
 
   return s;
-}
-
-std::ostream& operator<<(std::ostream& os, const Bbr2Sender::DebugState& s) {
-  os << "mode: " << s.mode << "\n";
-  os << "round_trip_count: " << s.round_trip_count << "\n";
-  os << "bandwidth_hi ~ lo ~ est: " << s.bandwidth_hi << " ~ " << s.bandwidth_lo
-     << " ~ " << s.bandwidth_est << "\n";
-  os << "min_rtt: " << s.min_rtt << "\n";
-  os << "min_rtt_timestamp: " << s.min_rtt_timestamp << "\n";
-  os << "congestion_window: " << s.congestion_window << "\n";
-  os << "pacing_rate: " << s.pacing_rate << "\n";
-  os << "last_sample_is_app_limited: " << s.last_sample_is_app_limited << "\n";
-
-  if (s.mode == Bbr2Mode::STARTUP) {
-    os << s.startup;
-  }
-
-  if (s.mode == Bbr2Mode::DRAIN) {
-    os << s.drain;
-  }
-
-  if (s.mode == Bbr2Mode::PROBE_BW) {
-    os << s.probe_bw;
-  }
-
-  if (s.mode == Bbr2Mode::PROBE_RTT) {
-    os << s.probe_rtt;
-  }
-
-  return os;
 }
 
 }  // namespace quic
