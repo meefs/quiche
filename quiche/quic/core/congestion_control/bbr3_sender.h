@@ -129,7 +129,6 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
   Bbr2Mode OnCongestionEventDrain(const Bbr2CongestionEvent& congestion_event);
   QuicByteCount DrainTarget() const;
 
-  void OnEnterQuiescence(QuicTime now);
   void OnExitQuiescence(QuicTime now);
 
   Bbr2Mode OnCongestionEventProbeBw(
@@ -160,8 +159,6 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
   void ExitProbeDown();
 
   bool IsTimeToProbeBandwidth(
-      const Bbr2CongestionEvent& congestion_event) const;
-  bool HasStayedLongEnoughInProbeDown(
       const Bbr2CongestionEvent& congestion_event) const;
   bool HasCycleLasted(QuicTime::Delta duration,
                       const Bbr2CongestionEvent& congestion_event) const;

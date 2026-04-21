@@ -67,8 +67,6 @@ Bbr2Sender::Bbr2Sender(QuicTime now, const RttStats* rtt_stats,
               max_cwnd_in_packets * kDefaultTCPMSS),
       model_(&params_, rtt_stats->SmoothedOrInitialRtt(),
              rtt_stats->last_update_time(),
-             /*cwnd_gain=*/1.0,
-             /*pacing_gain=*/kInitialPacingGain,
              old_sender ? &old_sender->sampler_ : nullptr),
       initial_cwnd_(cwnd_limits().ApplyLimits(
           (old_sender) ? old_sender->GetCongestionWindow()
@@ -339,7 +337,7 @@ void Bbr2Sender::OnCongestionEvent(bool /*rtt_updated*/,
   }
   if (congestion_event.bytes_in_flight == 0 &&
       params().avoid_unnecessary_probe_rtt) {
-    OnEnterQuiescence(event_time);
+    last_quiescence_start_ = event_time;
   }
 
   QUIC_DVLOG(3)
@@ -459,8 +457,7 @@ void Bbr2Sender::OnPacketNeutered(QuicPacketNumber packet_number) {
 }
 
 bool Bbr2Sender::CanSend(QuicByteCount bytes_in_flight) {
-  const bool result = bytes_in_flight < GetCongestionWindow();
-  return result;
+  return bytes_in_flight < GetCongestionWindow();
 }
 
 QuicByteCount Bbr2Sender::GetCongestionWindow() const {
@@ -490,10 +487,6 @@ QuicByteCount Bbr2Sender::GetTargetBytesInflight() const {
 
 void Bbr2Sender::PopulateConnectionStats(QuicConnectionStats* stats) const {
   stats->num_ack_aggregation_epochs = model_.num_ack_aggregation_epochs();
-}
-
-void Bbr2Sender::OnEnterQuiescence(QuicTime now) {
-  last_quiescence_start_ = now;
 }
 
 void Bbr2Sender::OnExitQuiescence(QuicTime now) {

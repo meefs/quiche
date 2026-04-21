@@ -124,7 +124,6 @@ class QUICHE_EXPORT Bbr2Sender final : public SendAlgorithmInterface {
   void UpdatePacingRate(QuicByteCount bytes_acked);
   void UpdateCongestionWindow(QuicByteCount bytes_acked);
   QuicByteCount GetTargetCongestionWindow(float gain) const;
-  void OnEnterQuiescence(QuicTime now);
   void OnExitQuiescence(QuicTime now);
 
   // Helper function for BBR2_MODE_DISPATCH.

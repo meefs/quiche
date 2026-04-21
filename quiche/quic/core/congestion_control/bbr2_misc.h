@@ -361,8 +361,8 @@ struct QUICHE_EXPORT Bbr2CongestionEvent {
 class QUICHE_EXPORT Bbr2NetworkModel {
  public:
   Bbr2NetworkModel(const Bbr2Params* params, QuicTime::Delta initial_rtt,
-                   QuicTime initial_rtt_timestamp, float cwnd_gain,
-                   float pacing_gain, const BandwidthSampler* old_sampler);
+                   QuicTime initial_rtt_timestamp,
+                   const BandwidthSampler* old_sampler);
 
   void OnPacketSent(QuicTime sent_time, QuicByteCount bytes_in_flight,
                     QuicPacketNumber packet_number, QuicByteCount bytes,

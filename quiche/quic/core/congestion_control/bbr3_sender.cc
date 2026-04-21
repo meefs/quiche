@@ -42,8 +42,6 @@ Bbr3Sender::Bbr3Sender(QuicTime now, const RttStats* rtt_stats,
               max_cwnd_in_packets * kDefaultTCPMSS),
       model_(&params_, rtt_stats->SmoothedOrInitialRtt(),
              rtt_stats->last_update_time(),
-             /*cwnd_gain=*/1.0,
-             /*pacing_gain=*/kInitialPacingGain,
              old_sender ? &old_sender->sampler_ : nullptr),
       initial_cwnd_(params_.cwnd_limits.ApplyLimits(
           (old_sender) ? old_sender->GetCongestionWindow()
@@ -371,7 +369,7 @@ void Bbr3Sender::OnCongestionEvent(bool /*rtt_updated*/,
   }
   if (congestion_event.bytes_in_flight == 0 &&
       params_.avoid_unnecessary_probe_rtt) {
-    OnEnterQuiescence(event_time);
+    last_quiescence_start_ = event_time;
   }
 
   QUIC_DVLOG(3)
@@ -491,8 +489,7 @@ void Bbr3Sender::OnPacketNeutered(QuicPacketNumber packet_number) {
 }
 
 bool Bbr3Sender::CanSend(QuicByteCount bytes_in_flight) {
-  const bool result = bytes_in_flight < GetCongestionWindow();
-  return result;
+  return bytes_in_flight < GetCongestionWindow();
 }
 
 QuicByteCount Bbr3Sender::GetCongestionWindow() const {
@@ -522,10 +519,6 @@ QuicByteCount Bbr3Sender::GetTargetBytesInflight() const {
 
 void Bbr3Sender::PopulateConnectionStats(QuicConnectionStats* stats) const {
   stats->num_ack_aggregation_epochs = model_.num_ack_aggregation_epochs();
-}
-
-void Bbr3Sender::OnEnterQuiescence(QuicTime now) {
-  last_quiescence_start_ = now;
 }
 
 void Bbr3Sender::LeaveStartup(QuicTime now) {
@@ -801,7 +794,7 @@ void Bbr3Sender::UpdateProbeDown(QuicByteCount prior_in_flight,
     return;
   }
 
-  if (HasStayedLongEnoughInProbeDown(congestion_event)) {
+  if (HasPhaseLasted(model_.MinRtt(), congestion_event)) {
     QUIC_DVLOG(3) << this << " Proportional time based PROBE_DOWN exit";
     EnterProbeCruise(congestion_event.event_time);
     return;
@@ -916,11 +909,6 @@ bool Bbr3Sender::IsTimeToProbeBandwidth(
     return true;
   }
   return false;
-}
-
-bool Bbr3Sender::HasStayedLongEnoughInProbeDown(
-    const Bbr2CongestionEvent& congestion_event) const {
-  return HasPhaseLasted(model_.MinRtt(), congestion_event);
 }
 
 bool Bbr3Sender::HasCycleLasted(
