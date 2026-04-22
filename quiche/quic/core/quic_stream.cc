@@ -328,20 +328,20 @@ void PendingStream::StopReading() {
   sequencer_.StopReading();
 }
 
-QuicStream::QuicStream(PendingStream* pending, QuicSession* session,
+QuicStream::QuicStream(PendingStream& pending, QuicSession* session,
                        bool is_static)
     : QuicStream(
-          pending->id_, session, std::move(pending->sequencer_), is_static,
-          QuicUtils::GetStreamType(pending->id_, session->perspective(),
+          pending.id_, session, std::move(pending.sequencer_), is_static,
+          QuicUtils::GetStreamType(pending.id_, session->perspective(),
                                    /*peer_initiated = */ true,
                                    session->version()),
-          pending->stream_bytes_read_, pending->fin_received_,
-          std::move(pending->flow_controller_),
-          pending->connection_flow_controller_,
-          (session->GetClock()->ApproximateNow() - pending->creation_time())) {
+          pending.stream_bytes_read_, pending.fin_received_,
+          std::move(pending.flow_controller_),
+          pending.connection_flow_controller_,
+          (session->GetClock()->ApproximateNow() - pending.creation_time())) {
   QUICHE_DCHECK(session->version().IsIetfQuic());
   sequencer_.set_stream(this);
-  buffered_reset_stream_at_ = pending->buffered_reset_stream_at();
+  buffered_reset_stream_at_ = pending.buffered_reset_stream_at();
 }
 
 namespace {

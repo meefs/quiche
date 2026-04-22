@@ -1545,7 +1545,7 @@ QuicStream* QuicSpdySession::ProcessReadUnidirectionalPendingStream(
         return nullptr;
       }
       auto receive_stream =
-          std::make_unique<QuicReceiveControlStream>(pending, this);
+          std::make_unique<QuicReceiveControlStream>(*pending, this);
       receive_control_stream_ = receive_stream.get();
       ActivateStream(std::move(receive_stream));
       QUIC_DVLOG(1) << ENDPOINT << "Receive Control stream is created";
@@ -1566,7 +1566,7 @@ QuicStream* QuicSpdySession::ProcessReadUnidirectionalPendingStream(
         return nullptr;
       }
       auto encoder_receive = std::make_unique<QpackReceiveStream>(
-          pending, this, qpack_decoder_->encoder_stream_receiver());
+          *pending, this, qpack_decoder_->encoder_stream_receiver());
       qpack_encoder_receive_stream_ = encoder_receive.get();
       ActivateStream(std::move(encoder_receive));
       QUIC_DVLOG(1) << ENDPOINT << "Receive QPACK Encoder stream is created";
@@ -1582,7 +1582,7 @@ QuicStream* QuicSpdySession::ProcessReadUnidirectionalPendingStream(
         return nullptr;
       }
       auto decoder_receive = std::make_unique<QpackReceiveStream>(
-          pending, this, qpack_encoder_->decoder_stream_receiver());
+          *pending, this, qpack_encoder_->decoder_stream_receiver());
       qpack_decoder_receive_stream_ = decoder_receive.get();
       ActivateStream(std::move(decoder_receive));
       QUIC_DVLOG(1) << ENDPOINT << "Receive QPACK Decoder stream is created";
@@ -1605,7 +1605,7 @@ QuicStream* QuicSpdySession::ProcessReadUnidirectionalPendingStream(
       QUIC_DVLOG(1) << ENDPOINT << "Created an incoming WebTransport stream "
                     << pending->id();
       auto stream_owned =
-          std::make_unique<WebTransportHttp3UnidirectionalStream>(pending,
+          std::make_unique<WebTransportHttp3UnidirectionalStream>(*pending,
                                                                   this);
       WebTransportHttp3UnidirectionalStream* stream = stream_owned.get();
       ActivateStream(std::move(stream_owned));

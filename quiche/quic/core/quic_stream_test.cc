@@ -66,7 +66,7 @@ class TestStream : public QuicStream {
     sequencer()->set_level_triggered(true);
   }
 
-  TestStream(PendingStream* pending, QuicSession* session, bool is_static)
+  TestStream(PendingStream& pending, QuicSession* session, bool is_static)
       : QuicStream(pending, session, is_static) {}
 
   MOCK_METHOD(void, OnDataAvailable, (), (override));
@@ -219,11 +219,11 @@ TEST_P(PendingStreamTest, PendingStreamStaticness) {
   Initialize();
 
   PendingStream pending(kTestPendingStreamId, *session_);
-  TestStream stream(&pending, session_.get(), false);
+  TestStream stream(pending, session_.get(), false);
   EXPECT_FALSE(stream.is_static());
 
   PendingStream pending2(kTestPendingStreamId + 4, *session_);
-  TestStream stream2(&pending2, session_.get(), true);
+  TestStream stream2(pending2, session_.get(), true);
   EXPECT_TRUE(stream2.is_static());
 }
 
@@ -231,7 +231,7 @@ TEST_P(PendingStreamTest, PendingStreamType) {
   Initialize();
 
   PendingStream pending(kTestPendingStreamId, *session_);
-  TestStream stream(&pending, session_.get(), false);
+  TestStream stream(pending, session_.get(), false);
   EXPECT_EQ(stream.type(), READ_UNIDIRECTIONAL);
 }
 
@@ -242,7 +242,7 @@ TEST_P(PendingStreamTest, PendingStreamTypeOnClient) {
       GetNthServerInitiatedUnidirectionalStreamId(session_->transport_version(),
                                                   1);
   PendingStream pending(server_initiated_pending_stream_id, *session_);
-  TestStream stream(&pending, session_.get(), false);
+  TestStream stream(pending, session_.get(), false);
   EXPECT_EQ(stream.type(), READ_UNIDIRECTIONAL);
 }
 
@@ -314,7 +314,7 @@ TEST_P(PendingStreamTest, PendingStreamWindowUpdate) {
   QuicWindowUpdateFrame frame(kInvalidControlFrameId, bidirection_stream_id,
                               kDefaultFlowControlSendWindow * 2);
   pending.OnWindowUpdateFrame(frame);
-  TestStream stream(&pending, session_.get(), false);
+  TestStream stream(pending, session_.get(), false);
 
   EXPECT_EQ(QuicStreamPeer::SendWindowSize(&stream),
             kDefaultFlowControlSendWindow * 2);
@@ -345,7 +345,7 @@ TEST_P(PendingStreamTest, FromPendingStream) {
   QuicStreamFrame frame2(kTestPendingStreamId, true, 3, ".");
   pending.OnStreamFrame(frame2);
 
-  TestStream stream(&pending, session_.get(), false);
+  TestStream stream(pending, session_.get(), false);
   EXPECT_EQ(3, stream.num_frames_received());
   EXPECT_EQ(3u, stream.stream_bytes_read());
   EXPECT_EQ(1, stream.num_duplicate_frames_received());
@@ -363,7 +363,7 @@ TEST_P(PendingStreamTest, FromPendingStreamThenData) {
   QuicStreamFrame frame(kTestPendingStreamId, false, 2, ".");
   pending.OnStreamFrame(frame);
 
-  auto stream = new TestStream(&pending, session_.get(), false);
+  auto stream = new TestStream(pending, session_.get(), false);
   session_->ActivateStream(absl::WrapUnique(stream));
 
   QuicStreamFrame frame2(kTestPendingStreamId, true, 3, ".");
@@ -391,7 +391,7 @@ TEST_P(PendingStreamTest, ResetStreamAt) {
   QuicStreamFrame frame(kTestPendingStreamId, false, 2, ".");
   pending.OnStreamFrame(frame);
 
-  auto stream = new TestStream(&pending, session_.get(), false);
+  auto stream = new TestStream(pending, session_.get(), false);
   session_->ActivateStream(absl::WrapUnique(stream));
 
   EXPECT_FALSE(stream->rst_received());

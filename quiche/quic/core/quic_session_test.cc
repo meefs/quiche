@@ -222,7 +222,7 @@ class TestStream : public QuicStream {
              StreamType type)
       : QuicStream(id, session, is_static, type) {}
 
-  TestStream(PendingStream* pending, QuicSession* session)
+  TestStream(PendingStream& pending, QuicSession* session)
       : QuicStream(pending, session, /*is_static=*/false) {}
 
   using QuicStream::AddBytesConsumed;
@@ -306,7 +306,7 @@ class TestSession : public QuicSession {
   }
 
   TestStream* CreateIncomingStream(PendingStream* pending) override {
-    TestStream* stream = new TestStream(pending, this);
+    TestStream* stream = new TestStream(*pending, this);
     ActivateStream(absl::WrapUnique(stream));
     ++num_incoming_streams_created_;
     return stream;

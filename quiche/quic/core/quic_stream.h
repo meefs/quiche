@@ -163,7 +163,7 @@ class QUICHE_EXPORT QuicStream : public QuicStreamSequencer::StreamInterface {
   // TODO(fayang): Remove |type| when IETF stream ID numbering fully kicks in.
   QuicStream(QuicStreamId id, QuicSession* session, bool is_static,
              StreamType type);
-  QuicStream(PendingStream* pending, QuicSession* session, bool is_static);
+  QuicStream(PendingStream& pending, QuicSession* session, bool is_static);
   QuicStream(const QuicStream&) = delete;
   QuicStream& operator=(const QuicStream&) = delete;
 

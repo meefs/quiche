@@ -74,7 +74,7 @@ QuicSpdyStream* WebTransportOnlyServerSession::CreateIncomingStream(
 
 QuicSpdyStream* WebTransportOnlyServerSession::CreateIncomingStream(
     PendingStream* pending) {
-  QuicSpdyStream* stream = new Stream(pending, this);
+  QuicSpdyStream* stream = new Stream(*pending, this);
   ActivateStream(absl::WrapUnique(stream));
   return stream;
 }

@@ -72,7 +72,7 @@ QuicSpdyStream* QuicSimpleServerSession::CreateIncomingStream(QuicStreamId id) {
 QuicSpdyStream* QuicSimpleServerSession::CreateIncomingStream(
     PendingStream* pending) {
   QuicSpdyStream* stream =
-      new QuicSimpleServerStream(pending, this, quic_simple_server_backend_);
+      new QuicSimpleServerStream(*pending, this, quic_simple_server_backend_);
   ActivateStream(absl::WrapUnique(stream));
   return stream;
 }
