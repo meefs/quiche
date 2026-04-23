@@ -242,9 +242,6 @@ class TestStream : public QuicSpdyStream {
   TestStream(QuicStreamId id, QuicSpdySession* session, StreamType type)
       : QuicSpdyStream(id, session, type) {}
 
-  TestStream(PendingStream& pending, QuicSpdySession* session)
-      : QuicSpdyStream(pending, session) {}
-
   using QuicStream::CloseWriteSide;
 
   void OnBodyAvailable() override {}

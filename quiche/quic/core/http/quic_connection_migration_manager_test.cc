@@ -287,9 +287,6 @@ class TestStream : public QuicSpdyStream {
   TestStream(QuicStreamId id, QuicSpdySession* session, StreamType type)
       : QuicSpdyStream(id, session, type) {}
 
-  TestStream(PendingStream& pending, QuicSpdySession* session)
-      : QuicSpdyStream(pending, session) {}
-
   void OnBodyAvailable() override {}
 
   MOCK_METHOD(void, OnCanWrite, (), (override));
