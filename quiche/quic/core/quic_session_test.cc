@@ -305,7 +305,7 @@ class TestSession : public QuicSession {
     return stream;
   }
 
-  TestStream* CreateIncomingStream(PendingStream* pending) override {
+  TestStream* CreateIncomingStream(PendingStream* pending) {
     TestStream* stream = new TestStream(*pending, this);
     ActivateStream(absl::WrapUnique(stream));
     ++num_incoming_streams_created_;

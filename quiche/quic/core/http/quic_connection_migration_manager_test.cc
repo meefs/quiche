@@ -400,12 +400,6 @@ class TestQuicSpdyClientSessionWithMigration
     return stream;
   }
 
-  TestStream* CreateIncomingStream(PendingStream* pending) override {
-    TestStream* stream = new TestStream(*pending, this);
-    ActivateStream(absl::WrapUnique(stream));
-    return stream;
-  }
-
   void set_alternate_network(QuicNetworkHandle network) {
     alternate_network_ = network;
   }

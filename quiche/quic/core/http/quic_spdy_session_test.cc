@@ -313,12 +313,6 @@ class TestSession : public QuicSpdySession {
     }
   }
 
-  TestStream* CreateIncomingStream(PendingStream* pending) override {
-    TestStream* stream = new TestStream(*pending, this);
-    ActivateStream(absl::WrapUnique(stream));
-    return stream;
-  }
-
   bool ShouldCreateIncomingStream(QuicStreamId /*id*/) override { return true; }
 
   bool ShouldCreateOutgoingBidirectionalStream() override { return true; }
