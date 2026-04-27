@@ -199,6 +199,7 @@ class QUICHE_EXPORT Bbr3Sender final : public SendAlgorithmInterface {
   Bbr2NetworkModel model_;
 
   const QuicByteCount initial_cwnd_;
+  uint64_t max_ack_height_window_length_ = 10;
 
   // Current cwnd and pacing rate.
   QuicByteCount cwnd_;

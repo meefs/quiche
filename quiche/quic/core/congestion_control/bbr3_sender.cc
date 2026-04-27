@@ -57,9 +57,15 @@ Bbr3Sender::Bbr3Sender(QuicTime now, const RttStats* rtt_stats,
   if (!connection_stats_->slowstart_duration.IsRunning()) {
     connection_stats_->slowstart_duration.Start(now);
   }
-  // Enter() is never called for Startup, so the gains needs to be set here.
-  model_.set_pacing_gain(params_.startup_pacing_gain);
-  model_.set_cwnd_gain(params_.startup_cwnd_gain);
+  // The BBR IETF draft uses 0.5 as the drain pacing gain.
+  params_.drain_pacing_gain = 0.5f;
+  // STARTUP has a shorter MaxAckHeightTracker window of 1 round.
+  params_.startup_include_extra_acked = true;
+  model_.SetMaxAckHeightTrackerWindowLength(1);
+  // Use the derived startup pacing gain in the IETF draft.
+  model_.set_pacing_gain(kDerivedStartupPacingGain);
+
+  QUICHE_DCHECK_EQ(model_.cwnd_gain(), 2.0);
   QUIC_DVLOG(2) << this << " Initializing Bbr3Sender. mode:" << mode_
                 << ", PacingRate:" << pacing_rate_ << ", Cwnd:" << cwnd_
                 << ", CwndLimits:" << params_.cwnd_limits << "  @ " << now;
@@ -68,43 +74,36 @@ Bbr3Sender::Bbr3Sender(QuicTime now, const RttStats* rtt_stats,
 
 void Bbr3Sender::SetFromConfig(const QuicConfig& config,
                                Perspective perspective) {
-  if (config.HasClientRequestedIndependentOption(kB2NA, perspective)) {
-    params_.add_ack_height_to_queueing_threshold = false;
-  }
-  if (config.HasClientRequestedIndependentOption(kB2RP, perspective)) {
-    params_.avoid_unnecessary_probe_rtt = false;
-  }
-  if (config.HasClientRequestedIndependentOption(k1RTT, perspective)) {
-    params_.startup_full_bw_rounds = 1;
-  }
-  if (config.HasClientRequestedIndependentOption(k2RTT, perspective)) {
-    params_.startup_full_bw_rounds = 2;
-  }
-  if (config.HasClientRequestedIndependentOption(kB2HR, perspective)) {
-    params_.inflight_hi_headroom = 0.15;
-  }
-  if (config.HasClientRequestedIndependentOption(kICW1, perspective)) {
-    max_cwnd_when_network_parameters_adjusted_ = 100 * kDefaultTCPMSS;
-  }
-
   ApplyConnectionOptions(config.ClientRequestedIndependentOptions(perspective));
 }
 
 void Bbr3Sender::ApplyConnectionOptions(
     const QuicTagVector& connection_options) {
-  if (GetQuicReloadableFlag(quic_bbr2_extra_acked_window) &&
-      ContainsQuicTag(connection_options, kBBR4)) {
-    QUIC_RELOADABLE_FLAG_COUNT_N(quic_bbr2_extra_acked_window, 1, 2);
-    model_.SetMaxAckHeightTrackerWindowLength(20);
+  if (ContainsQuicTag(connection_options, kB2NA)) {
+    params_.add_ack_height_to_queueing_threshold = false;
   }
-  if (GetQuicReloadableFlag(quic_bbr2_extra_acked_window) &&
-      ContainsQuicTag(connection_options, kBBR5)) {
-    QUIC_RELOADABLE_FLAG_COUNT_N(quic_bbr2_extra_acked_window, 2, 2);
-    model_.SetMaxAckHeightTrackerWindowLength(40);
+  if (ContainsQuicTag(connection_options, kB2RP)) {
+    params_.avoid_unnecessary_probe_rtt = false;
   }
-  if (ContainsQuicTag(connection_options, kBBQ1)) {
-    params_.startup_pacing_gain = 2.773;
-    params_.drain_pacing_gain = 1.0 / params_.drain_cwnd_gain;
+  if (ContainsQuicTag(connection_options, k1RTT)) {
+    params_.startup_full_bw_rounds = 1;
+  }
+  if (ContainsQuicTag(connection_options, k2RTT)) {
+    params_.startup_full_bw_rounds = 2;
+  }
+  if (ContainsQuicTag(connection_options, kB2HR)) {
+    params_.inflight_hi_headroom = 0.15;
+  }
+  if (ContainsQuicTag(connection_options, kICW1)) {
+    max_cwnd_when_network_parameters_adjusted_ = 100 * kDefaultTCPMSS;
+  }
+  if (ContainsQuicTag(connection_options, kBBR4)) {
+    QUICHE_DCHECK_EQ(mode_, Bbr2Mode::STARTUP);
+    max_ack_height_window_length_ = 20;
+  }
+  if (ContainsQuicTag(connection_options, kBBR5)) {
+    QUICHE_DCHECK_EQ(mode_, Bbr2Mode::STARTUP);
+    max_ack_height_window_length_ = 40;
   }
   if (ContainsQuicTag(connection_options, kBBQ2)) {
     params_.startup_cwnd_gain = 2.885;
@@ -156,9 +155,6 @@ void Bbr3Sender::ApplyConnectionOptions(
   if (ContainsQuicTag(connection_options, kB205)) {
     params_.startup_include_extra_acked = true;
   }
-  if (ContainsQuicTag(connection_options, kB207)) {
-    params_.max_startup_queue_rounds = 1;
-  }
   if (ContainsQuicTag(connection_options, kBBRA)) {
     model_.SetStartNewAggregationEpochAfterFullRound(true);
   }
@@ -179,9 +175,6 @@ void Bbr3Sender::ApplyConnectionOptions(
   }
   if (ContainsQuicTag(connection_options, kBB2U)) {
     params_.max_probe_up_queue_rounds = 2;
-  }
-  if (ContainsQuicTag(connection_options, kBB2S)) {
-    params_.max_startup_queue_rounds = 2;
   }
 }
 
@@ -439,6 +432,7 @@ void Bbr3Sender::UpdateCongestionWindow(QuicByteCount bytes_acked) {
   } else if (prior_cwnd < target_cwnd || prior_cwnd < 2 * initial_cwnd_) {
     cwnd_ = prior_cwnd + bytes_acked;
   }
+
   const QuicByteCount desired_cwnd = cwnd_;
 
   cwnd_ = GetCwndLimitsByMode().ApplyLimits(cwnd_);
@@ -493,7 +487,6 @@ bool Bbr3Sender::CanSend(QuicByteCount bytes_in_flight) {
 }
 
 QuicByteCount Bbr3Sender::GetCongestionWindow() const {
-  // TODO(wub): Implement Recovery?
   return cwnd_;
 }
 
@@ -525,6 +518,8 @@ void Bbr3Sender::LeaveStartup(QuicTime now) {
   connection_stats_->slowstart_duration.Stop(now);
   // Clear bandwidth_lo if it's set during STARTUP.
   model_.clear_bandwidth_lo();
+  // Increase the max_ack_height_tracker window when exiting STARTUP from 1.
+  model_.SetMaxAckHeightTrackerWindowLength(max_ack_height_window_length_);
 }
 
 void Bbr3Sender::OnExitQuiescence(QuicTime now) {
@@ -620,17 +615,8 @@ Bbr2Mode Bbr3Sender::OnCongestionEventStartup(
     return Bbr2Mode::STARTUP;
   }
   bool has_bandwidth_growth = model_.HasBandwidthGrowth(congestion_event);
-  if (params_.max_startup_queue_rounds > 0 && !has_bandwidth_growth) {
-    // 1.75 is less than the 2x CWND gain, but substantially more than 1.25x,
-    // the minimum bandwidth increase expected during STARTUP.
-    model_.CheckPersistentQueue(congestion_event, 1.75);
-  }
-  // TCP BBR always exits upon excessive losses. QUIC BBRv1 does not exit
-  // upon excessive losses, if enough bandwidth growth is observed or if the
-  // sample was app limited.
-  if (params_.always_exit_startup_on_excess_loss ||
-      (!congestion_event.last_packet_send_state.is_app_limited &&
-       !has_bandwidth_growth)) {
+  // By default, don't exit STARTUP if there was bandwidth growth.
+  if (params_.always_exit_startup_on_excess_loss || !has_bandwidth_growth) {
     CheckExcessiveLosses(congestion_event);
   }
 

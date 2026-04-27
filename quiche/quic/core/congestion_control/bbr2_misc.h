@@ -72,6 +72,10 @@ QUICHE_EXPORT inline std::ostream& operator<<(std::ostream& os,
 inline constexpr QuicByteCount kDefaultMinimumCongestionWindow =
     4 * kMaxSegmentSize;
 inline constexpr float kInitialPacingGain = 2.885f;
+// The derived startup pacing gain for 2x growth: (4 * ln(2)) = 2.773.
+inline constexpr float kDerivedStartupPacingGain = 2.773f;
+// The derived startup CWND gain for 2x growth.  Also the default CWND gain.
+inline constexpr float kDerivedDefaultCwndGain = 2.0f;
 
 // Bbr2Params contains all parameters of a Bbr2Sender.
 struct QUICHE_EXPORT Bbr2Params {
@@ -83,9 +87,8 @@ struct QUICHE_EXPORT Bbr2Params {
    */
 
   // The gain for CWND in startup.
-  float startup_cwnd_gain = 2.0;
-  // TODO(wub): Maybe change to the newly derived value of 2.773 (4 * ln(2)).
-  float startup_pacing_gain = 2.885;
+  float startup_cwnd_gain = kDerivedDefaultCwndGain;
+  float startup_pacing_gain = kInitialPacingGain;
 
   // STARTUP or PROBE_UP are exited if the total bandwidth growth is less than
   // |full_bw_threshold| in the last |startup_full_bw_rounds| round trips.
@@ -96,6 +99,7 @@ struct QUICHE_EXPORT Bbr2Params {
   // Number of rounds to stay in STARTUP when there's a sufficient queue that
   // bytes_in_flight never drops below the target (1.75 * BDP).  0 indicates the
   // feature is disabled and we never exit due to queueing.
+  // NOT supported in BBR3.
   QuicRoundTripCount max_startup_queue_rounds = 0;
 
   // The minimum number of loss marking events to exit STARTUP.
@@ -114,8 +118,8 @@ struct QUICHE_EXPORT Bbr2Params {
   /*
    * DRAIN parameters.
    */
-  float drain_cwnd_gain = 2.0;
-  float drain_pacing_gain = 1.0 / 2.885;
+  float drain_cwnd_gain = kDerivedDefaultCwndGain;
+  float drain_pacing_gain = 1.0 / kInitialPacingGain;
 
   /*
    * PROBE_BW parameters.
@@ -149,7 +153,7 @@ struct QUICHE_EXPORT Bbr2Params {
   float probe_bw_probe_down_pacing_gain = 0.91;
   float probe_bw_default_pacing_gain = 1.0;
 
-  float probe_bw_cwnd_gain = 2.0;
+  float probe_bw_cwnd_gain = kDerivedDefaultCwndGain;
 
   /*
    * PROBE_UP parameters.
