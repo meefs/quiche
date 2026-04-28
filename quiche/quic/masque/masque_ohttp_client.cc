@@ -1043,6 +1043,7 @@ absl::Status MasqueOhttpClient::ChunkHandler::OnBodyChunk(
   body_chunk_count_++;
   QUICHE_LOG(INFO) << "Received body chunk #" << body_chunk_count_
                    << " of size " << body_chunk.size();
+  std::cout << body_chunk;
   response_.body += body_chunk;
 
   if (response_chunk_callback_) {
